@@ -35,10 +35,16 @@ LOCAL_CFLAGS += -DHAVE_EXPAT_CONFIG_H
 LOCAL_CFLAGS += -DOS_PATH_SEPARATOR=\'/\'
 
 
-LOCAL_C_INCLUDES += external/libpng
-LOCAL_C_INCLUDES += external/zlib
-LOCAL_C_INCLUDES += build/libs/host/include
+#LOCAL_C_INCLUDES += external/libpng
+#LOCAL_C_INCLUDES += external/zlib
+#LOCAL_C_INCLUDES += build/libs/host/include
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/expat/lib
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/libpng
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/zlib
+
 
 #LOCAL_WHOLE_STATIC_LIBRARIES := 
 LOCAL_STATIC_LIBRARIES := \
