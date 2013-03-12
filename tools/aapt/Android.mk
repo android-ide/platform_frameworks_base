@@ -44,6 +44,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include/
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/expat/lib
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/libpng
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/zlib
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../build/libs/host/include
 
 
 #LOCAL_WHOLE_STATIC_LIBRARIES := 
