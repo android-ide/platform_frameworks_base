@@ -29,14 +29,16 @@ LOCAL_SRC_FILES := \
 
 
 LOCAL_CFLAGS += -Wno-format-y2k
-ifeq (darwin,$(HOST_OS))
-LOCAL_CFLAGS += -D_DARWIN_UNLIMITED_STREAMS
-endif
+LOCAL_CFLAGS += -DHAVE_ENDIAN_H -DHAVE_PTHREADS -DHAVE_SYS_UIO_H -DHAVE_POSIX_FILEMAP
+LOCAL_CFLAGS += -DHAVE_SCHED_H -DHAVE_SYS_UIO_H -DHAVE_IOCTL -DHAVE_TM_GMTOFF -DHAVE_OFF64_T
+LOCAL_CFLAGS += -DHAVE_EXPAT_CONFIG_H
+LOCAL_CFLAGS += -DOS_PATH_SEPARATOR=\'/\'
 
 
 LOCAL_C_INCLUDES += external/libpng
 LOCAL_C_INCLUDES += external/zlib
 LOCAL_C_INCLUDES += build/libs/host/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
 
 #LOCAL_WHOLE_STATIC_LIBRARIES := 
 LOCAL_STATIC_LIBRARIES := \
@@ -47,20 +49,10 @@ LOCAL_STATIC_LIBRARIES := \
 	libexpat \
 	libpng
 
-ifeq ($(HOST_OS),linux)
-LOCAL_LDLIBS += -lrt -ldl -lpthread
-endif
-
-# Statically link libz for MinGW (Win SDK under Linux),
-# and dynamically link for all others.
-ifneq ($(strip $(USE_MINGW)),)
-  LOCAL_STATIC_LIBRARIES += libz
-else
-  LOCAL_LDLIBS += -lz
-endif
+LOCAL_LDLIBS += -lz -llog
 
 LOCAL_MODULE := aapt
 
-include $(BUILD_HOST_EXECUTABLE)
+include $(BUILD_EXECUTABLE)
 
 endif # TARGET_BUILD_APPS
