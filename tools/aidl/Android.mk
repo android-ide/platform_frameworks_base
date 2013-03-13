@@ -9,8 +9,8 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
-	aidl_language_l.l \
-	aidl_language_y.y \
+	aidl_language_l.cpp \
+	aidl_language_y.cpp \
 	aidl.cpp \
 	aidl_language.cpp \
 	options.cpp \
@@ -22,8 +22,9 @@ LOCAL_SRC_FILES := \
 	generate_java_rpc.cpp
 
 LOCAL_CFLAGS := -g
+LOCAL_CFLAGS += -DOS_PATH_SEPARATOR=\'/\'
 LOCAL_MODULE := aidl
 
-include $(BUILD_HOST_EXECUTABLE)
+include $(BUILD_EXECUTABLE)
 
 endif # TARGET_BUILD_APPS
