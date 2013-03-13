@@ -41,23 +41,6 @@ commonSources:= \
 	$(commonUtilsSources) \
 	$(commonUiSources)
 
-# For the host
-# =====================================================
-
-include $(CLEAR_VARS)
-
-LOCAL_SRC_FILES:= $(commonSources)
-
-LOCAL_MODULE:= libandroidfw
-
-LOCAL_MODULE_TAGS := optional
-
-LOCAL_C_INCLUDES := \
-	external/zlib
-
-include $(BUILD_HOST_STATIC_LIBRARY)
-
-
 # For the device
 # =====================================================
 
@@ -83,12 +66,22 @@ LOCAL_C_INCLUDES := \
     external/icu4c/common \
 	external/zlib
 
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include
+
+
+LOCAL_CFLAGS += -DHAVE_ENDIAN_H -DHAVE_PTHREADS -DHAVE_SYS_UIO_H -DHAVE_POSIX_FILEMAP
+LOCAL_CFLAGS += -DHAVE_SCHED_H -DHAVE_SYS_UIO_H -DHAVE_IOCTL -DHAVE_TM_GMTOFF -DHAVE_OFF64_T
+LOCAL_CFLAGS += -DHAVE_EXPAT_CONFIG_H
+LOCAL_CFLAGS += -DOS_PATH_SEPARATOR=\'/\'
+
+
 LOCAL_MODULE:= libandroidfw
 
+include $(BUILD_STATIC_LIBRARY)
+
 LOCAL_MODULE_TAGS := optional
-
-include $(BUILD_SHARED_LIBRARY)
-
 
 ifeq ($(TARGET_OS),linux)
 include $(CLEAR_VARS)
