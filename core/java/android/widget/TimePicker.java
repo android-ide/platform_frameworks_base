@@ -172,7 +172,7 @@ public class TimePicker extends FrameLayout {
         mMinuteSpinner.setMinValue(0);
         mMinuteSpinner.setMaxValue(59);
         mMinuteSpinner.setOnLongPressUpdateInterval(100);
-        mMinuteSpinner.setFormatter(NumberPicker.TWO_DIGIT_FORMATTER);
+        mMinuteSpinner.setFormatter(NumberPicker.getTwoDigitFormatter());
         mMinuteSpinner.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             public void onValueChange(NumberPicker spinner, int oldVal, int newVal) {
                 updateInputState();
@@ -237,6 +237,7 @@ public class TimePicker extends FrameLayout {
 
         // update controls to initial state
         updateHourControl();
+        updateMinuteControl();
         updateAmPmControl();
 
         setOnTimeChangedListener(NO_OP_CHANGE_LISTENER);
@@ -428,6 +429,7 @@ public class TimePicker extends FrameLayout {
         updateHourControl();
         // set value after spinner range is updated
         setCurrentHour(currentHour);
+        updateMinuteControl();
         updateAmPmControl();
     }
 
@@ -500,11 +502,19 @@ public class TimePicker extends FrameLayout {
         if (is24HourView()) {
             mHourSpinner.setMinValue(0);
             mHourSpinner.setMaxValue(23);
-            mHourSpinner.setFormatter(NumberPicker.TWO_DIGIT_FORMATTER);
+            mHourSpinner.setFormatter(NumberPicker.getTwoDigitFormatter());
         } else {
             mHourSpinner.setMinValue(1);
             mHourSpinner.setMaxValue(12);
             mHourSpinner.setFormatter(null);
+        }
+    }
+
+    private void updateMinuteControl() {
+        if (is24HourView()) {
+            mMinuteSpinnerInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        } else {
+            mMinuteSpinnerInput.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         }
     }
 

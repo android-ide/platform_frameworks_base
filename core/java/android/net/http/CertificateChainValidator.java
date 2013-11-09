@@ -16,21 +16,22 @@
 
 package android.net.http;
 
+import com.android.org.conscrypt.SSLParametersImpl;
+import com.android.org.conscrypt.TrustManagerImpl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.DefaultHostnameVerifier;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509TrustManager;
-import org.apache.harmony.security.provider.cert.X509CertImpl;
-import org.apache.harmony.xnet.provider.jsse.SSLParametersImpl;
-import org.apache.harmony.xnet.provider.jsse.TrustManagerImpl;
 
 /**
  * Class responsible for all server certificate validation functionality
@@ -118,8 +119,14 @@ public class CertificateChainValidator {
 
         X509Certificate[] serverCertificates = new X509Certificate[certChain.length];
 
-        for (int i = 0; i < certChain.length; ++i) {
-            serverCertificates[i] = new X509CertImpl(certChain[i]);
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            for (int i = 0; i < certChain.length; ++i) {
+                serverCertificates[i] = (X509Certificate) cf.generateCertificate(
+                        new ByteArrayInputStream(certChain[i]));
+            }
+        } catch (CertificateException e) {
+            throw new IOException("can't read certificate", e);
         }
 
         return verifyServerDomainAndCertificates(serverCertificates, domain, authType);
@@ -168,7 +175,13 @@ public class CertificateChainValidator {
         }
 
         try {
-            SSLParametersImpl.getDefaultTrustManager().checkServerTrusted(chain, authType);
+            X509TrustManager x509TrustManager = SSLParametersImpl.getDefaultTrustManager();
+            if (x509TrustManager instanceof TrustManagerImpl) {
+                TrustManagerImpl trustManager = (TrustManagerImpl) x509TrustManager;
+                trustManager.checkServerTrusted(chain, authType, domain);
+            } else {
+                x509TrustManager.checkServerTrusted(chain, authType);
+            }
             return null;  // No errors.
         } catch (GeneralSecurityException e) {
             if (HttpLog.LOGV) {

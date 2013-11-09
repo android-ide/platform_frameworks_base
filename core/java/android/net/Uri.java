@@ -16,13 +16,17 @@
 
 package android.net;
 
+import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.Environment.UserEnvironment;
+import android.os.StrictMode;
 import android.util.Log;
 import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.Charsets;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1685,7 +1689,7 @@ public abstract class Uri implements Parcelable, Comparable<Uri> {
                     return "";
                 } else {
                     String encodedValue = query.substring(separator + 1, end);
-                    return UriCodec.decode(encodedValue, true, Charsets.UTF_8, false);
+                    return UriCodec.decode(encodedValue, true, StandardCharsets.UTF_8, false);
                 }
             }
 
@@ -1713,7 +1717,7 @@ public abstract class Uri implements Parcelable, Comparable<Uri> {
         if (flag == null) {
             return defaultValue;
         }
-        flag = flag.toLowerCase();
+        flag = flag.toLowerCase(Locale.ROOT);
         return (!"false".equals(flag) && !"0".equals(flag));
     }
 
@@ -1741,7 +1745,7 @@ public abstract class Uri implements Parcelable, Comparable<Uri> {
     public Uri normalizeScheme() {
         String scheme = getScheme();
         if (scheme == null) return this;  // give up
-        String lowerScheme = scheme.toLowerCase(Locale.US);
+        String lowerScheme = scheme.toLowerCase(Locale.ROOT);
         if (scheme.equals(lowerScheme)) return this;  // no change
 
         return buildUpon().scheme(lowerScheme).build();
@@ -1924,7 +1928,7 @@ public abstract class Uri implements Parcelable, Comparable<Uri> {
         if (s == null) {
             return null;
         }
-        return UriCodec.decode(s, false, Charsets.UTF_8, false);
+        return UriCodec.decode(s, false, StandardCharsets.UTF_8, false);
     }
 
     /**
@@ -2287,5 +2291,52 @@ public abstract class Uri implements Parcelable, Comparable<Uri> {
         Builder builder = baseUri.buildUpon();
         builder = builder.appendEncodedPath(pathSegment);
         return builder.build();
+    }
+
+    /**
+     * If this {@link Uri} is {@code file://}, then resolve and return its
+     * canonical path. Also fixes legacy emulated storage paths so they are
+     * usable across user boundaries. Should always be called from the app
+     * process before sending elsewhere.
+     *
+     * @hide
+     */
+    public Uri getCanonicalUri() {
+        if ("file".equals(getScheme())) {
+            final String canonicalPath;
+            try {
+                canonicalPath = new File(getPath()).getCanonicalPath();
+            } catch (IOException e) {
+                return this;
+            }
+
+            if (Environment.isExternalStorageEmulated()) {
+                final String legacyPath = Environment.getLegacyExternalStorageDirectory()
+                        .toString();
+
+                // Splice in user-specific path when legacy path is found
+                if (canonicalPath.startsWith(legacyPath)) {
+                    return Uri.fromFile(new File(
+                            Environment.getExternalStorageDirectory().toString(),
+                            canonicalPath.substring(legacyPath.length() + 1)));
+                }
+            }
+
+            return Uri.fromFile(new File(canonicalPath));
+        } else {
+            return this;
+        }
+    }
+
+    /**
+     * If this is a {@code file://} Uri, it will be reported to
+     * {@link StrictMode}.
+     *
+     * @hide
+     */
+    public void checkFileUriExposed(String location) {
+        if ("file".equals(getScheme())) {
+            StrictMode.onFileUriExposed(location);
+        }
     }
 }

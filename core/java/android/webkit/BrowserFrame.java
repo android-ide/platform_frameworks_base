@@ -40,13 +40,13 @@ import android.view.WindowManager;
 
 import junit.framework.Assert;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.URLEncoder;
-import java.nio.charset.Charsets;
 import java.security.PrivateKey;
-import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,9 +55,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.harmony.security.provider.cert.X509CertImpl;
-import org.apache.harmony.xnet.provider.jsse.OpenSSLDSAPrivateKey;
-import org.apache.harmony.xnet.provider.jsse.OpenSSLRSAPrivateKey;
+import com.android.org.conscrypt.OpenSSLKey;
+import com.android.org.conscrypt.OpenSSLKeyHolder;
 
 class BrowserFrame extends Handler {
 
@@ -74,6 +73,7 @@ class BrowserFrame extends Handler {
     private final CallbackProxy mCallbackProxy;
     private final WebSettingsClassic mSettings;
     private final Context mContext;
+    private final WebViewDatabaseClassic mDatabase;
     private final WebViewCore mWebViewCore;
     /* package */ boolean mLoadInitFromJava;
     private int mLoadType;
@@ -88,15 +88,23 @@ class BrowserFrame extends Handler {
     // Is this frame the main frame?
     private boolean mIsMainFrame;
 
+    // Javascript interface object
+    private class JSObject {
+        Object object;
+        boolean requireAnnotation;
+
+        public JSObject(Object object, boolean requireAnnotation) {
+            this.object = object;
+            this.requireAnnotation = requireAnnotation;
+        }
+    }
+
     // Attached Javascript interfaces
-    private Map<String, Object> mJavaScriptObjects;
+    private Map<String, JSObject> mJavaScriptObjects;
     private Set<Object> mRemovedJavaScriptObjects;
 
     // Key store handler when Chromium HTTP stack is used.
     private KeyStoreHandler mKeyStoreHandler = null;
-
-    // Implementation of the searchbox API.
-    private final SearchBoxImpl mSearchBox;
 
     // message ids
     // a message posted when a frame loading is completed
@@ -217,8 +225,6 @@ class BrowserFrame extends Handler {
             } else {
                 sJavaBridge.setCacheSize(4 * 1024 * 1024);
             }
-            // initialize CacheManager
-            CacheManager.init(appContext);
             // create CookieSyncManager with current Context
             CookieSyncManager.createInstance(appContext);
             // create PluginManager with current Context
@@ -233,19 +239,15 @@ class BrowserFrame extends Handler {
         }
         sConfigCallback.addHandler(this);
 
-        mJavaScriptObjects = javascriptInterfaces;
-        if (mJavaScriptObjects == null) {
-            mJavaScriptObjects = new HashMap<String, Object>();
-        }
+        mJavaScriptObjects = new HashMap<String, JSObject>();
+        addJavaScriptObjects(javascriptInterfaces);
         mRemovedJavaScriptObjects = new HashSet<Object>();
 
         mSettings = settings;
         mContext = context;
         mCallbackProxy = proxy;
+        mDatabase = WebViewDatabaseClassic.getInstance(appContext);
         mWebViewCore = w;
-
-        mSearchBox = new SearchBoxImpl(mWebViewCore, mCallbackProxy);
-        mJavaScriptObjects.put(SearchBoxImpl.JS_INTERFACE_NAME, mSearchBox);
 
         AssetManager am = context.getAssets();
         nativeCreateFrame(w, am, proxy.getBackForwardList());
@@ -424,8 +426,7 @@ class BrowserFrame extends Handler {
             if (h != null) {
                 String url = WebTextView.urlForAutoCompleteData(h.getUrl());
                 if (url != null) {
-                    WebViewDatabaseClassic.getInstance(mContext).setFormData(
-                            url, data);
+                    mDatabase.setFormData(url, data);
                 }
             }
         }
@@ -591,15 +592,34 @@ class BrowserFrame extends Handler {
         Iterator<String> iter = mJavaScriptObjects.keySet().iterator();
         while (iter.hasNext())  {
             String interfaceName = iter.next();
-            Object object = mJavaScriptObjects.get(interfaceName);
-            if (object != null) {
+            JSObject jsobject = mJavaScriptObjects.get(interfaceName);
+            if (jsobject != null && jsobject.object != null) {
                 nativeAddJavascriptInterface(nativeFramePointer,
-                        mJavaScriptObjects.get(interfaceName), interfaceName);
+                        jsobject.object, interfaceName, jsobject.requireAnnotation);
             }
         }
         mRemovedJavaScriptObjects.clear();
+    }
 
-        stringByEvaluatingJavaScriptFromString(SearchBoxImpl.JS_BRIDGE);
+    /*
+     * Add javascript objects to the internal list of objects. The default behavior
+     * is to allow access to inherited methods (no annotation needed). This is only
+     * used when js objects are passed through a constructor (via a hidden constructor).
+     *
+     * @TODO change the default behavior to be compatible with the public addjavascriptinterface
+     */
+    private void addJavaScriptObjects(Map<String, Object> javascriptInterfaces) {
+
+        // TODO in a separate CL provide logic to enable annotations for API level JB_MR1 and above.
+        if (javascriptInterfaces == null) return;
+        Iterator<String> iter = javascriptInterfaces.keySet().iterator();
+        while (iter.hasNext())  {
+            String interfaceName = iter.next();
+            Object object = javascriptInterfaces.get(interfaceName);
+            if (object != null) {
+                mJavaScriptObjects.put(interfaceName, new JSObject(object, false));
+            }
+        }
     }
 
     /**
@@ -619,11 +639,11 @@ class BrowserFrame extends Handler {
         }
     }
 
-    public void addJavascriptInterface(Object obj, String interfaceName) {
+    public void addJavascriptInterface(Object obj, String interfaceName,
+            boolean requireAnnotation) {
         assert obj != null;
         removeJavascriptInterface(interfaceName);
-
-        mJavaScriptObjects.put(interfaceName, obj);
+        mJavaScriptObjects.put(interfaceName, new JSObject(obj, requireAnnotation));
     }
 
     public void removeJavascriptInterface(String interfaceName) {
@@ -736,12 +756,15 @@ class BrowserFrame extends Handler {
                 return null;
             }
         } else if (url.startsWith(ANDROID_ASSET)) {
-            url = url.replaceFirst(ANDROID_ASSET, "");
+            String assetUrl = url.replaceFirst(ANDROID_ASSET, "");
             try {
                 AssetManager assets = mContext.getAssets();
-                Uri uri = Uri.parse(url);
+                Uri uri = Uri.parse(assetUrl);
                 return assets.open(uri.getPath(), AssetManager.ACCESS_STREAMING);
             } catch (IOException e) {
+                return null;
+            } catch (Exception e) {
+                Log.w(LOGTAG, "Problem loading url: " + url, e);
                 return null;
             }
         } else if (mSettings.getAllowContentAccess() &&
@@ -800,10 +823,10 @@ class BrowserFrame extends Handler {
             // the post data (there could be another form on the
             // page and that was posted instead.
             String postString = new String(postData);
-            WebViewDatabaseClassic db = WebViewDatabaseClassic.getInstance(mContext);
             if (postString.contains(URLEncoder.encode(username)) &&
                     postString.contains(URLEncoder.encode(password))) {
-                String[] saved = db.getUsernamePassword(schemePlusHost);
+                String[] saved = mDatabase.getUsernamePassword(
+                        schemePlusHost);
                 if (saved != null) {
                     // null username implies that user has chosen not to
                     // save password
@@ -811,8 +834,7 @@ class BrowserFrame extends Handler {
                         // non-null username implies that user has
                         // chosen to save password, so update the
                         // recorded password
-                        db.setUsernamePassword(schemePlusHost, username,
-                                password);
+                        mDatabase.setUsernamePassword(schemePlusHost, username, password);
                     }
                 } else {
                     // CallbackProxy will handle creating the resume
@@ -1004,7 +1026,7 @@ class BrowserFrame extends Handler {
     }
 
     private float density() {
-        return mContext.getResources().getDisplayMetrics().density;
+        return WebViewCore.getFixedDisplayDensity(mContext);
     }
 
     /**
@@ -1058,10 +1080,12 @@ class BrowserFrame extends Handler {
             String url) {
         final SslError sslError;
         try {
-            X509Certificate cert = new X509CertImpl(certDER);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) cf.generateCertificate(
+                    new ByteArrayInputStream(certDER));
             SslCertificate sslCert = new SslCertificate(cert);
             sslError = SslError.SslErrorFromChromiumErrorCode(certError, sslCert, url);
-        } catch (IOException e) {
+        } catch (Exception e) {
             // Can't get the certificate, not much to do.
             Log.e(LOGTAG, "Can't get the certificate from WebKit, canceling");
             nativeSslCertErrorCancel(handle, certError);
@@ -1108,13 +1132,10 @@ class BrowserFrame extends Handler {
         if (table.IsAllowed(hostAndPort)) {
             // previously allowed
             PrivateKey pkey = table.PrivateKey(hostAndPort);
-            if (pkey instanceof OpenSSLRSAPrivateKey) {
+            if (pkey instanceof OpenSSLKeyHolder) {
+                OpenSSLKey sslKey = ((OpenSSLKeyHolder) pkey).getOpenSSLKey();
                 nativeSslClientCert(handle,
-                                    ((OpenSSLRSAPrivateKey)pkey).getPkeyContext(),
-                                    table.CertificateChain(hostAndPort));
-            } else if (pkey instanceof OpenSSLDSAPrivateKey) {
-                nativeSslClientCert(handle,
-                                    ((OpenSSLDSAPrivateKey)pkey).getPkeyContext(),
+                                    sslKey.getPkeyContext(),
                                     table.CertificateChain(hostAndPort));
             } else {
                 nativeSslClientCert(handle,
@@ -1138,7 +1159,7 @@ class BrowserFrame extends Handler {
      * DownloadListener.
      */
     private void downloadStart(String url, String userAgent,
-            String contentDisposition, String mimeType, long contentLength) {
+            String contentDisposition, String mimeType, String referer, long contentLength) {
         // This will only work if the url ends with the filename
         if (mimeType.isEmpty()) {
             try {
@@ -1158,7 +1179,7 @@ class BrowserFrame extends Handler {
             mKeyStoreHandler = new KeyStoreHandler(mimeType);
         } else {
             mCallbackProxy.onDownloadStart(url, userAgent,
-                contentDisposition, mimeType, contentLength);
+                contentDisposition, mimeType, referer, contentLength);
         }
     }
 
@@ -1182,17 +1203,15 @@ class BrowserFrame extends Handler {
      */
     private void setCertificate(byte cert_der[]) {
         try {
-            X509Certificate cert = new X509CertImpl(cert_der);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) cf.generateCertificate(
+                    new ByteArrayInputStream(cert_der));
             mCallbackProxy.onReceivedCertificate(new SslCertificate(cert));
-        } catch (IOException e) {
+        } catch (Exception e) {
             // Can't get the certificate, not much to do.
             Log.e(LOGTAG, "Can't get the certificate from WebKit, canceling");
             return;
         }
-    }
-
-    /*package*/ SearchBox getSearchBox() {
-        return mSearchBox;
     }
 
     /**
@@ -1249,7 +1268,7 @@ class BrowserFrame extends Handler {
      * Add a javascript interface to the main frame.
      */
     private native void nativeAddJavascriptInterface(int nativeFramePointer,
-            Object obj, String interfaceName);
+            Object obj, String interfaceName, boolean requireAnnotation);
 
     public native void clearCache();
 
@@ -1310,7 +1329,7 @@ class BrowserFrame extends Handler {
     private native void nativeSslCertErrorCancel(int handle, int certError);
 
     native void nativeSslClientCert(int handle,
-                                    int ctx,
+                                    long ctx,
                                     byte[][] asn1DerEncodedCertificateChain);
 
     native void nativeSslClientCert(int handle,

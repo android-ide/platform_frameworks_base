@@ -74,7 +74,6 @@ public class MobileDataStateTracker implements NetworkStateTracker {
 
     private Handler mHandler;
     private AsyncChannel mDataConnectionTrackerAc;
-    private Messenger mMessenger;
 
     /**
      * Create a new MobileDataStateTracker
@@ -103,7 +102,6 @@ public class MobileDataStateTracker implements NetworkStateTracker {
         IntentFilter filter = new IntentFilter();
         filter.addAction(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED);
         filter.addAction(TelephonyIntents.ACTION_DATA_CONNECTION_FAILED);
-        filter.addAction(DctConstants.ACTION_DATA_CONNECTION_TRACKER_MESSENGER);
 
         mContext.registerReceiver(new MobileDataStateReceiver(), filter);
         mMobileDataState = PhoneConstants.DataState.DISCONNECTED;
@@ -285,13 +283,6 @@ public class MobileDataStateTracker implements NetworkStateTracker {
                                 " broadcast" + reason == null ? "" : "(" + reason + ")");
                 }
                 setDetailedState(DetailedState.FAILED, reason, apnName);
-            } else if (intent.getAction().equals(DctConstants
-                    .ACTION_DATA_CONNECTION_TRACKER_MESSENGER)) {
-                if (VDBG) log(mApnType + " got ACTION_DATA_CONNECTION_TRACKER_MESSENGER");
-                mMessenger =
-                    intent.getParcelableExtra(DctConstants.EXTRA_MESSENGER);
-                AsyncChannel ac = new AsyncChannel();
-                ac.connect(mContext, MobileDataStateTracker.this.mHandler, mMessenger);
             } else {
                 if (DBG) log("Broadcast received: ignore " + intent.getAction());
             }
@@ -379,6 +370,11 @@ public class MobileDataStateTracker implements NetworkStateTracker {
     public boolean teardown() {
         setTeardownRequested(true);
         return (setEnableApn(mApnType, false) != PhoneConstants.APN_REQUEST_FAILED);
+    }
+
+    @Override
+    public void captivePortalCheckComplete() {
+        // not implemented
     }
 
     /**
@@ -498,6 +494,19 @@ public class MobileDataStateTracker implements NetworkStateTracker {
     }
 
     /**
+     * Eanble/disable FailFast
+     *
+     * @param enabled is DctConstants.ENABLED/DISABLED
+     */
+    public void setEnableFailFastMobileData(int enabled) {
+        if (DBG) log("setEnableFailFastMobileData(enabled=" + enabled + ")");
+        final AsyncChannel channel = mDataConnectionTrackerAc;
+        if (channel != null) {
+            channel.sendMessage(DctConstants.CMD_SET_ENABLE_FAIL_FAST_MOBILE_DATA, enabled);
+        }
+    }
+
+    /**
      * carrier dependency is met/unmet
      * @param met
      */
@@ -514,6 +523,16 @@ public class MobileDataStateTracker implements NetworkStateTracker {
         } catch (NullPointerException e) {
             loge("setDependencyMet: X mAc was null" + e);
         }
+    }
+
+    @Override
+    public void addStackedLink(LinkProperties link) {
+        mLinkProperties.addStackedLink(link);
+    }
+
+    @Override
+    public void removeStackedLink(LinkProperties link) {
+        mLinkProperties.removeStackedLink(link);
     }
 
     @Override
@@ -596,6 +615,12 @@ public class MobileDataStateTracker implements NetworkStateTracker {
      */
     public LinkCapabilities getLinkCapabilities() {
         return new LinkCapabilities(mLinkCapabilities);
+    }
+
+    public void supplyMessenger(Messenger messenger) {
+        if (VDBG) log(mApnType + " got supplyMessenger");
+        AsyncChannel ac = new AsyncChannel();
+        ac.connect(mContext, MobileDataStateTracker.this.mHandler, messenger);
     }
 
     private void log(String s) {

@@ -94,21 +94,6 @@ static void signalExceptionForGroupError(JNIEnv* env, int err)
     }
 }
 
-jint android_os_Process_myPid(JNIEnv* env, jobject clazz)
-{
-    return getpid();
-}
-
-jint android_os_Process_myUid(JNIEnv* env, jobject clazz)
-{
-    return getuid();
-}
-
-jint android_os_Process_myTid(JNIEnv* env, jobject clazz)
-{
-    return androidGetTid();
-}
-
 jint android_os_Process_getUidForName(JNIEnv* env, jobject clazz, jstring name)
 {
     if (name == NULL) {
@@ -268,6 +253,15 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
     closedir(d);
 }
 
+jint android_os_Process_getProcessGroup(JNIEnv* env, jobject clazz, jint pid)
+{
+    SchedPolicy sp;
+    if (get_sched_policy(pid, &sp) != 0) {
+        signalExceptionForGroupError(env, errno);
+    }
+    return (int) sp;
+}
+
 static void android_os_Process_setCanSelfBackground(JNIEnv* env, jobject clazz, jboolean bgOk) {
     // Establishes the calling thread as illegal to put into the background.
     // Typically used only for the system process's main looper.
@@ -334,8 +328,7 @@ void android_os_Process_setThreadPriority(JNIEnv* env, jobject clazz,
 void android_os_Process_setCallingThreadPriority(JNIEnv* env, jobject clazz,
                                                         jint pri)
 {
-    jint tid = android_os_Process_myTid(env, clazz);
-    android_os_Process_setThreadPriority(env, clazz, tid, pri);
+    android_os_Process_setThreadPriority(env, clazz, androidGetTid(), pri);
 }
 
 jint android_os_Process_getThreadPriority(JNIEnv* env, jobject clazz,
@@ -980,9 +973,6 @@ jintArray android_os_Process_getPidsForCommands(JNIEnv* env, jobject clazz,
 }
 
 static const JNINativeMethod methods[] = {
-    {"myPid",       "()I", (void*)android_os_Process_myPid},
-    {"myTid",       "()I", (void*)android_os_Process_myTid},
-    {"myUid",       "()I", (void*)android_os_Process_myUid},
     {"getUidForName",       "(Ljava/lang/String;)I", (void*)android_os_Process_getUidForName},
     {"getGidForName",       "(Ljava/lang/String;)I", (void*)android_os_Process_getGidForName},
     {"setThreadPriority",   "(II)V", (void*)android_os_Process_setThreadPriority},
@@ -991,7 +981,8 @@ static const JNINativeMethod methods[] = {
     {"setThreadPriority",   "(I)V", (void*)android_os_Process_setCallingThreadPriority},
     {"getThreadPriority",   "(I)I", (void*)android_os_Process_getThreadPriority},
     {"setThreadGroup",      "(II)V", (void*)android_os_Process_setThreadGroup},
-    {"setProcessGroup",      "(II)V", (void*)android_os_Process_setProcessGroup},
+    {"setProcessGroup",     "(II)V", (void*)android_os_Process_setProcessGroup},
+    {"getProcessGroup",     "(I)I", (void*)android_os_Process_getProcessGroup},
     {"setOomAdj",   "(II)Z", (void*)android_os_Process_setOomAdj},
     {"setArgV0",    "(Ljava/lang/String;)V", (void*)android_os_Process_setArgV0},
     {"setUid", "(I)I", (void*)android_os_Process_setUid},

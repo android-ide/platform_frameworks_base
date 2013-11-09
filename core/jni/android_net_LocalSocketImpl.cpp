@@ -35,6 +35,7 @@
 
 #include <cutils/sockets.h>
 #include <netinet/tcp.h>
+#include <ScopedUtfChars.h>
 
 namespace android {
 
@@ -72,10 +73,7 @@ socket_connect_local(JNIEnv *env, jobject object,
                         jobject fileDescriptor, jstring name, jint namespaceId)
 {
     int ret;
-    const char *nameUtf8;
     int fd;
-
-    nameUtf8 = env->GetStringUTFChars(name, NULL);
 
     fd = jniGetFDFromFileDescriptor(env, fileDescriptor);
 
@@ -83,13 +81,13 @@ socket_connect_local(JNIEnv *env, jobject object,
         return;
     }
 
+    ScopedUtfChars nameUtf8(env, name);
+
     ret = socket_local_client_connect(
                 fd,
-                nameUtf8,
+                nameUtf8.c_str(),
                 namespaceId,
                 SOCK_STREAM);
-
-    env->ReleaseStringUTFChars(name, nameUtf8);
 
     if (ret < 0) {
         jniThrowIOException(env, errno);
@@ -109,11 +107,10 @@ socket_bind_local (JNIEnv *env, jobject object, jobject fileDescriptor,
 {
     int ret;
     int fd;
-    const char *nameUtf8;
-
 
     if (name == NULL) {
         jniThrowNullPointerException(env, NULL);
+        return;
     }
 
     fd = jniGetFDFromFileDescriptor(env, fileDescriptor);
@@ -122,11 +119,9 @@ socket_bind_local (JNIEnv *env, jobject object, jobject fileDescriptor,
         return;
     }
 
-    nameUtf8 = env->GetStringUTFChars(name, NULL);
+    ScopedUtfChars nameUtf8(env, name);
 
-    ret = socket_local_server_bind(fd, nameUtf8, namespaceId);
-
-    env->ReleaseStringUTFChars(name, nameUtf8);
+    ret = socket_local_server_bind(fd, nameUtf8.c_str(), namespaceId);
 
     if (ret < 0) {
         jniThrowIOException(env, errno);
@@ -371,7 +366,31 @@ static void socket_setOption(
         return;
     }
 }
+static jint socket_pending (JNIEnv *env, jobject object,
+        jobject fileDescriptor)
+{
+    int fd;
 
+    fd = jniGetFDFromFileDescriptor(env, fileDescriptor);
+
+    if (env->ExceptionOccurred() != NULL) {
+        return (jint)-1;
+    }
+
+    int pending;
+    int ret = ioctl(fd, TIOCOUTQ, &pending);
+
+    // If this were a non-socket fd, there would be other cases to worry
+    // about...
+
+    //ALOGD("socket_pending, ioctl ret:%d, pending:%d", ret, pending);
+    if (ret < 0) {
+        jniThrowIOException(env, errno);
+        return (jint) 0;
+    }
+
+    return (jint)pending;
+}
 static jint socket_available (JNIEnv *env, jobject object,
         jobject fileDescriptor)
 {
@@ -473,6 +492,7 @@ static int socket_process_cmsg(JNIEnv *env, jobject thisJ, struct msghdr * pMsg)
             if (count < 0) {
                 jniThrowException(env, "java/io/IOException",
                     "invalid cmsg length");
+                return -1;
             }
 
             fdArray = env->NewObjectArray(count, class_FileDescriptor, NULL);
@@ -893,6 +913,7 @@ static JNINativeMethod gMethods[] = {
     {"accept", "(Ljava/io/FileDescriptor;Landroid/net/LocalSocketImpl;)Ljava/io/FileDescriptor;", (void*)socket_accept},
     {"shutdown", "(Ljava/io/FileDescriptor;Z)V", (void*)socket_shutdown},
     {"available_native", "(Ljava/io/FileDescriptor;)I", (void*) socket_available},
+    {"pending_native", "(Ljava/io/FileDescriptor;)I", (void*) socket_pending},
     {"close_native", "(Ljava/io/FileDescriptor;)V", (void*) socket_close},
     {"read_native", "(Ljava/io/FileDescriptor;)I", (void*) socket_read},
     {"readba_native", "([BIILjava/io/FileDescriptor;)I", (void*) socket_readba},

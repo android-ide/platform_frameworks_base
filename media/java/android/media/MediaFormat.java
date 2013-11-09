@@ -26,7 +26,7 @@ import java.util.Map;
  *
  * The format of the media data is specified as string/value pairs.
  *
- * Keys common to all formats:
+ * Keys common to all formats, <b>all keys not marked optional are mandatory</b>:
  *
  * <table>
  * <tr><th>Name</th><th>Value Type</th><th>Description</th></tr>
@@ -40,7 +40,8 @@ import java.util.Map;
  * <tr><th>Name</th><th>Value Type</th><th>Description</th></tr>
  * <tr><td>{@link #KEY_WIDTH}</td><td>Integer</td><td></td></tr>
  * <tr><td>{@link #KEY_HEIGHT}</td><td>Integer</td><td></td></tr>
- * <tr><td>{@link #KEY_COLOR_FORMAT}</td><td>Integer</td><td><b>encoder-only</b></td></tr>
+ * <tr><td>{@link #KEY_COLOR_FORMAT}</td><td>Integer</td><td>set by the user
+ *         for encoders, readable in the output format of decoders</b></td></tr>
  * <tr><td>{@link #KEY_FRAME_RATE}</td><td>Integer or Float</td><td><b>encoder-only</b></td></tr>
  * <tr><td>{@link #KEY_I_FRAME_INTERVAL}</td><td>Integer</td><td><b>encoder-only</b></td></tr>
  * </table>
@@ -50,9 +51,9 @@ import java.util.Map;
  * <tr><th>Name</th><th>Value Type</th><th>Description</th></tr>
  * <tr><td>{@link #KEY_CHANNEL_COUNT}</td><td>Integer</td><td></td></tr>
  * <tr><td>{@link #KEY_SAMPLE_RATE}</td><td>Integer</td><td></td></tr>
- * <tr><td>{@link #KEY_IS_ADTS}</td><td>Integer</td><td>optional, if content is AAC audio, setting this key to 1 indicates that each audio frame is prefixed by the ADTS header.</td></tr>
+ * <tr><td>{@link #KEY_IS_ADTS}</td><td>Integer</td><td>optional, if <em>decoding</em> AAC audio content, setting this key to 1 indicates that each audio frame is prefixed by the ADTS header.</td></tr>
  * <tr><td>{@link #KEY_AAC_PROFILE}</td><td>Integer</td><td><b>encoder-only</b>, optional, if content is AAC audio, specifies the desired profile.</td></tr>
- * <tr><td>{@link #KEY_CHANNEL_MASK}</td><td>Integer</td><td>A mask of audio channel assignments</td></tr>
+ * <tr><td>{@link #KEY_CHANNEL_MASK}</td><td>Integer</td><td>optional, a mask of audio channel assignments</td></tr>
  * <tr><td>{@link #KEY_FLAC_COMPRESSION_LEVEL}</td><td>Integer</td><td><b>encoder-only</b>, optional, if content is FLAC audio, specifies the desired compression level.</td></tr>
  * </table>
  *
@@ -140,6 +141,8 @@ public final class MediaFormat {
      * A key mapping to a value of 1 if the content is AAC audio and
      * audio frames are prefixed with an ADTS header.
      * The associated value is an integer (0 or 1).
+     * This key is only supported when _decoding_ content, it cannot
+     * be used to configure an encoder to emit ADTS output.
      */
     public static final String KEY_IS_ADTS = "is-adts";
 
@@ -152,7 +155,7 @@ public final class MediaFormat {
 
     /**
      * A key describing the AAC profile to be used (AAC audio formats only).
-     * Constants are declared in {@link android.media.MediaCodecInfo.CodecCapabilities}.
+     * Constants are declared in {@link android.media.MediaCodecInfo.CodecProfileLevel}.
      */
     public static final String KEY_AAC_PROFILE = "aac-profile";
 
