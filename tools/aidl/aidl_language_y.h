@@ -1,10 +1,8 @@
+/* A Bison parser, made by GNU Bison 2.5.  */
 
-/* A Bison parser, made by GNU Bison 2.4.1.  */
-
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -42,33 +40,19 @@
      IMPORT = 258,
      PACKAGE = 259,
      IDENTIFIER = 260,
-     GENERIC = 261,
-     ARRAY = 262,
-     PARCELABLE = 263,
-     INTERFACE = 264,
-     FLATTENABLE = 265,
-     RPC = 266,
-     IN = 267,
-     OUT = 268,
-     INOUT = 269,
-     ONEWAY = 270
+     IDVALUE = 261,
+     GENERIC = 262,
+     ARRAY = 263,
+     PARCELABLE = 264,
+     INTERFACE = 265,
+     FLATTENABLE = 266,
+     RPC = 267,
+     IN = 268,
+     OUT = 269,
+     INOUT = 270,
+     ONEWAY = 271
    };
 #endif
-/* Tokens.  */
-#define IMPORT 258
-#define PACKAGE 259
-#define IDENTIFIER 260
-#define GENERIC 261
-#define ARRAY 262
-#define PARCELABLE 263
-#define INTERFACE 264
-#define FLATTENABLE 265
-#define RPC 266
-#define IN 267
-#define OUT 268
-#define INOUT 269
-#define ONEWAY 270
-
 
 
 
