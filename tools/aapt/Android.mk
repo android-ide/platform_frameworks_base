@@ -67,7 +67,11 @@ endif
 
 LOCAL_MODULE := aapt
 
+
+ifndef AIDE_BUILD
 include $(BUILD_HOST_EXECUTABLE)
+endif # AIDE_BUILD
+ 
 
 # aapt for running on the device
 # =========================================================
@@ -84,6 +88,19 @@ LOCAL_C_INCLUDES += external/stlport/stlport
 LOCAL_C_INCLUDES += external/libpng
 LOCAL_C_INCLUDES += external/zlib
 
+
+ifdef AIDE_BUILD
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/expat/lib
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/libpng
+
+LOCAL_LDLIBS += -lz -llog
+
+endif # AIDE_BUILD
+
 LOCAL_CFLAGS += -Wno-non-virtual-dtor
 
 LOCAL_SHARED_LIBRARIES := \
@@ -97,6 +114,23 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_STATIC_LIBRARIES := \
         libstlport_static \
         libexpat_static
+
+
+ifdef AIDE_BUILD
+
+LOCAL_SHARED_LIBRARIES := 
+
+LOCAL_STATIC_LIBRARIES := \
+        libstlport \
+        libexpat_static \
+        libandroidfw \
+        libutils \
+        libcutils \
+        libpng \
+        liblog \
+        libz
+
+endif # AIDE_BUILD
 
 include $(BUILD_EXECUTABLE)
 endif
