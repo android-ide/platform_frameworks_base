@@ -37,6 +37,10 @@ deviceSources := \
 
 hostSources := $(commonSources)
 
+
+ifndef AIDE_BUILD
+ 
+
 # For the host
 # =====================================================
 include $(CLEAR_VARS)
@@ -50,6 +54,9 @@ LOCAL_C_INCLUDES := external/zlib
 
 include $(BUILD_HOST_STATIC_LIBRARY)
 
+
+endif # AIDE_BUILD
+ 
 
 # For the device
 # =====================================================
@@ -70,8 +77,18 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
 
-include $(BUILD_SHARED_LIBRARY)
 
+ifdef AIDE_BUILD
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include
+
+include $(BUILD_STATIC_LIBRARY)
+
+else
+
+include $(BUILD_SHARED_LIBRARY)
 
 # Include subdirectory makefiles
 # ============================================================
@@ -81,3 +98,6 @@ include $(BUILD_SHARED_LIBRARY)
 ifeq (,$(ONE_SHOT_MAKEFILE))
 include $(call first-makefiles-under,$(LOCAL_PATH))
 endif
+
+
+endif # AIDE_BUILD
