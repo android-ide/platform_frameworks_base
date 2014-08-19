@@ -2298,6 +2298,8 @@ ssize_t AaptAssets::slurpFromArgs(Bundle* bundle)
     FileType type;
     const Vector<const char *>& resDirs = bundle->getResourceSourceDirs();
     const size_t dirCount =resDirs.size();
+    const Vector<const char *>& assetDirs = bundle->getAssetSourceDirs();
+    const size_t assetDirCount = assetDirs.size();
     sp<AaptAssets> current = this;
 
     const int N = bundle->getFileSpecCount();
@@ -2316,8 +2318,8 @@ ssize_t AaptAssets::slurpFromArgs(Bundle* bundle)
     /*
      * If a directory of custom assets was supplied, slurp 'em up.
      */
-    if (bundle->getAssetSourceDir()) {
-        const char* assetDir = bundle->getAssetSourceDir();
+    for (size_t i=0; i<assetDirCount; i++) {
+        const char *assetDir = assetDirs[i];
 
         FileType type = getFileType(assetDir);
         if (type == kFileTypeNonexistent) {
