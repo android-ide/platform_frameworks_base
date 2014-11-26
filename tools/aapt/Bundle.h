@@ -132,8 +132,8 @@ public:
     /*
      * Input options.
      */
-    const android::Vector<const char*>& getAssetSourceDirs() const { return mAssetSourceDirs; }
-    void addAssetSourceDir(const char* dir) { mAssetSourceDirs.insertAt(dir,0); }
+    const char* getAssetSourceDir() const { return mAssetSourceDir; }
+    void setAssetSourceDir(const char* dir) { mAssetSourceDir = dir; }
     const char* getCrunchedOutputDir() const { return mCrunchedOutputDir; }
     void setCrunchedOutputDir(const char* dir) { mCrunchedOutputDir = dir; }
     const char* getProguardFile() const { return mProguardFile; }
@@ -282,7 +282,6 @@ private:
     android::Vector<const char*> mJarFiles;
     android::Vector<const char*> mNoCompressExtensions;
     android::Vector<const char*> mResourceSourceDirs;
-    android::Vector<const char*> mAssetSourceDirs;
 
     const char* mManifestMinSdkVersion;
     const char* mMinSdkVersion;

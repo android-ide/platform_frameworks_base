@@ -1900,7 +1900,7 @@ int doPackage(Bundle* bundle)
 
     N = bundle->getFileSpecCount();
     if (N < 1 && bundle->getResourceSourceDirs().size() == 0 && bundle->getJarFiles().size() == 0
-            && bundle->getAndroidManifestFile() == NULL && bundle->getAssetSourceDirs().size() == 0) {
+            && bundle->getAndroidManifestFile() == NULL && bundle->getAssetSourceDir() == NULL) {
         fprintf(stderr, "ERROR: no input files\n");
         goto bail;
     }
