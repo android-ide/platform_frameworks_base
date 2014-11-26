@@ -20,7 +20,11 @@
 #include <ctype.h>
 #include <errno.h>
 
+#ifdef AIDE_BUILD
+#include <expat.h>
+#else
 #include <libexpat/expat.h>
+#endif
 
 using namespace android;
 

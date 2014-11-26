@@ -38,6 +38,10 @@ deviceSources := \
 hostSources := \
     $(commonSources)
 
+
+ifndef AIDE_BUILD
+ 
+
 # For the host
 # =====================================================
 
@@ -58,6 +62,9 @@ LOCAL_STATIC_LIBRARIES := liblog libziparchive-host libutils
 
 include $(BUILD_HOST_STATIC_LIBRARY)
 
+
+endif # AIDE_BUILD
+ 
 
 # For the device
 # =====================================================
@@ -83,8 +90,18 @@ LOCAL_MODULE:= libandroidfw
 
 LOCAL_MODULE_TAGS := optional
 
-include $(BUILD_SHARED_LIBRARY)
 
+ifdef AIDE_BUILD
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include
+
+include $(BUILD_STATIC_LIBRARY)
+
+else
+
+include $(BUILD_SHARED_LIBRARY)
 
 # Include subdirectory makefiles
 # ============================================================
@@ -94,3 +111,6 @@ include $(BUILD_SHARED_LIBRARY)
 ifeq (,$(ONE_SHOT_MAKEFILE))
 include $(call first-makefiles-under,$(LOCAL_PATH))
 endif
+
+
+endif # AIDE_BUILD
