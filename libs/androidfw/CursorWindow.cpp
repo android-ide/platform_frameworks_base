@@ -353,4 +353,4 @@ status_t CursorWindow::putNull(uint32_t row, uint32_t column) {
 
 }; // namespace android
 
-#endif # AIDE_BUILD
+#endif // AIDE_BUILD

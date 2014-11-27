@@ -99,7 +99,9 @@ ifeq (darwin,$(HOST_OS))
 LOCAL_CFLAGS += -D_DARWIN_UNLIMITED_STREAMS
 endif
 
+ifndef AIDE_BUILD
 include $(BUILD_HOST_STATIC_LIBRARY)
+endif # AIDE_BUILD
 
 
 # ==========================================================
@@ -118,7 +120,9 @@ LOCAL_STATIC_LIBRARIES += \
 LOCAL_LDLIBS += $(aaptHostLdLibs)
 LOCAL_CFLAGS += $(aaptCFlags)
 
+ifndef AIDE_BUILD
 include $(BUILD_HOST_EXECUTABLE)
+endif # AIDE_BUILD
 
 
 # ==========================================================
@@ -138,7 +142,9 @@ LOCAL_STATIC_LIBRARIES += \
 LOCAL_LDLIBS += $(aaptHostLdLibs)
 LOCAL_CFLAGS += $(aaptCFlags)
 
+ifndef AIDE_BUILD
 include $(BUILD_HOST_NATIVE_TEST)
+endif # AIDE_BUILD
 
 
 # ==========================================================
@@ -155,6 +161,17 @@ LOCAL_C_INCLUDES += \
     bionic \
     external/stlport/stlport
 
+
+ifdef AIDE_BUILD
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/expat/lib
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/libpng
+LOCAL_LDLIBS += -lz -llog
+endif # AIDE_BUILD
+
+
 LOCAL_SHARED_LIBRARIES := \
     libandroidfw \
     libutils \
@@ -169,6 +186,24 @@ LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_CFLAGS += $(aaptCFlags)
 LOCAL_CPPFLAGS += -Wno-non-virtual-dtor
+
+
+ifdef AIDE_BUILD
+
+LOCAL_SHARED_LIBRARIES :=
+
+LOCAL_STATIC_LIBRARIES := \
+        libstlport \
+        libexpat_static \
+        libandroidfw \
+        libutils \
+        libcutils \
+        libpng \
+        liblog \
+        libz
+
+endif # AIDE_BUILD
+
 
 include $(BUILD_EXECUTABLE)
 
