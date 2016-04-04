@@ -75,10 +75,9 @@ LOCAL_SHARED_LIBRARIES := \
     libutils \
     libz
 
-LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
-
-
 ifdef AIDE_BUILD
+
+LOCAL_CPPFLAGS += -std=gnu++11
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include/
@@ -87,6 +86,8 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include
 include $(BUILD_STATIC_LIBRARY)
 
 else
+
+LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
 
 include $(BUILD_SHARED_LIBRARY)
 
