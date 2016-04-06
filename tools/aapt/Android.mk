@@ -76,6 +76,37 @@ aaptHostLdLibs_linux += -lz
 aaptHostLdLibs_darwin := -lz
 
 
+ifdef AIDE_BUILD
+
+# ==========================================================
+# Build device executable
+# ==========================================================
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := aapt
+LOCAL_CFLAGS := -Wno-format-y2k -DSTATIC_ANDROIDFW_FOR_TOOLS $(aaptCFlags)
+LOCAL_CPPFLAGS := $(aaptCppFlags)
+LOCAL_SRC_FILES := $(aaptSources) $(aaptMain) aide_logstub.c
+LOCAL_STATIC_LIBRARIES := $(aaptHostStaticLibs) libexpat_static
+LOCAL_STATIC_LIBRARIES_windows := $(aaptHostStaticLibs_windows)
+
+LOCAL_CPPFLAGS += -std=gnu++11 -Wno-error
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/include/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../native/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/expat/lib
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../external/libpng
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../system/core/base/include
+
+LOCAL_LDLIBS += -lz -llog
+
+include $(BUILD_EXECUTABLE)
+
+
+else
+
+
 # ==========================================================
 # Build the host static library: libaapt
 # ==========================================================
@@ -127,5 +158,6 @@ LOCAL_STATIC_LIBRARIES_windows := $(aaptHostStaticLibs_windows)
 
 include $(BUILD_HOST_NATIVE_TEST)
 
+endif # AIDE_BUILD
 
 endif # No TARGET_BUILD_APPS or TARGET_BUILD_PDK
